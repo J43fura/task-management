@@ -1,4 +1,5 @@
 import Login from '@/views/Login.vue'
+import Tasks from '@/views/Tasks.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -8,6 +9,11 @@ const router = createRouter({
       path: '/',
       name: 'login',
       component: Login,
+    },
+    {
+      path: '/tasks',
+      name: 'tasks',
+      component: Tasks,
     },
   ],
 })

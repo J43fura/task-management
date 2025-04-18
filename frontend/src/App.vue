@@ -6,4 +6,5 @@ import { RouterView } from 'vue-router'
   <body>
     <RouterView />
   </body>
+  <Toast />
 </template>

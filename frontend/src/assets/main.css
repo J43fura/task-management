@@ -2,6 +2,8 @@
 @import 'tailwindcss-primeui';
 @import 'primeicons/primeicons.css';
 
+@source inline("bg-{red,emerald,green,amber,orange,yellow}-{50,{100..900..100},950}");
+
 :root {
   font-synthesis: none;
   text-rendering: optimizeLegibility;
