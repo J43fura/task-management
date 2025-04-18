@@ -24,9 +24,11 @@
             :disabled="connected"
           />
           <br />
-          <Button @click="toggleConnection()" :disabled="!task.username">
-            {{ connectionButton }}
-          </Button>
+          <Button
+            :label="connectionButton"
+            @click="toggleConnection()"
+            :disabled="!task.username"
+          />
           <p>Connected: {{ connected }}</p>
           <p v-if="connected">{{ connected_users }} <i class="pi pi-user"></i></p>
         </template>
@@ -36,14 +38,28 @@
         <ul>
           <li>
             <InputText type="text" v-model="task.content" />
-            <Button @click="addTask(task)">Add task</Button>
+            <Button label="Add task" icon="pi pi-plus" @click="addTask(task)" />
             <Divider />
           </li>
-          <li v-for="(task, index) in tasks" :key="index">
-            {{ index }}
+          <li v-for="task in tasks" :key="task.index">
+            {{ task.index }}
             {{ task.content }}
             @{{ task.username }}
-            <Button @click="removeTask(task)">Remove</Button>
+            <Button label="Edit" @click="editTask(task)" severity="secondary" icon="pi pi-pencil" />
+
+            <Button
+              :label="task.status === 'default' ? 'Start' : 'Drop'"
+              @click="toggleTask(task)"
+              :icon="`pi pi-${task.status === 'default' ? 'play' : 'times'}`"
+            />
+            <Button
+              label="Finish"
+              @click="finishTask(task)"
+              severity="success"
+              icon="pi pi-check"
+            />
+            <Button label="Delete" severity="danger" @click="removeTask(task)" icon="pi pi-trash" />
+
             <Divider />
           </li>
         </ul>
@@ -82,11 +98,22 @@ const tasks = computed(() => state.tasks)
 const task = ref({ content: '' })
 const connected_users = ref(0)
 
+const example_task = {
+  content: 'Content',
+  created_by: 'Username',
+  assigned_by: 'Username2',
+}
 function addTask(task) {
   socket.emit('new-task', task)
 }
 function removeTask(task) {
   socket.emit('remove-task', task)
+}
+function editTask(task) {
+  socket.emit('edit-task', task)
+}
+function toggleTask(task) {
+  socket.emit('update-task', task)
 }
 
 // Socket event handlers (emitted from backend)
@@ -96,16 +123,21 @@ socket.on('connect', () => {
 socket.on('disconnect', () => {
   state.connected = false
 })
+socket.on('connected-users', (new_connected_users) => {
+  console.log(new_connected_users)
+  connected_users.value = new_connected_users
+})
+
 socket.on('new-task', (task) => {
   state.tasks.push(task)
   $toast.add({ severity: 'info', summary: 'Task', detail: 'Recieved new task', life: 3000 })
 })
 socket.on('remove-task', (task) => {
-  state.tasks = state.tasks.filter((filterTask) => filterTask.content !== task.content)
-  $toast.add({ severity: 'info', summary: 'Task', detail: 'Removed task', life: 3000 })
+  state.tasks = state.tasks.filter((filterTask) => filterTask.index !== task.index)
+  $toast.add({ severity: 'warn', summary: 'Task', detail: 'Removed task', life: 3000 })
 })
-socket.on('connected-users', (new_connected_users) => {
-  console.log(new_connected_users)
-  connected_users.value = new_connected_users
+socket.on('update-task', (task) => {
+  state.tasks = state.tasks.map((oldTask) => (oldTask.index !== task.index ? oldTask : task))
+  $toast.add({ severity: 'info', summary: 'Task', detail: 'Updated task', life: 3000 })
 })
 </script>

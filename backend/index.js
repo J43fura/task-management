@@ -15,6 +15,8 @@ app.get("/", (req, res) => {
 });
 
 let connected_users = 0;
+let indexCounter = 0;
+
 io.on("connection", (socket) => {
   console.log("a user connected", connected_users);
 
@@ -26,7 +28,10 @@ io.on("connection", (socket) => {
   });
 
   // emitted from frontend
+
   socket.on("new-task", (task) => {
+    task.status = "default";
+    task.index = ++indexCounter;
     console.log("new-task", task);
 
     // emit back to frontend
@@ -38,6 +43,13 @@ io.on("connection", (socket) => {
   socket.on("remove-task", (task) => {
     console.log("remove-task", task);
     io.emit("remove-task", task);
+  });
+
+  socket.on("update-task", (task) => {
+    console.log("update-task", task);
+    const new_status = task.status === "default" ? "started" : "default";
+    task.status = new_status;
+    io.emit("update-task", task);
   });
 });
 
