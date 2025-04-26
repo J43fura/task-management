@@ -9,3 +9,8 @@ task management app with Vue + Express.js + Socket.IO + MongoDB
 setup MongoDB
 1. https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/
 2. https://www.mongodb.com/docs/compass/current/install/
+3.
+    ```bash
+    npm run dev:backend
+    npm run dev:frontend
+    ```
