@@ -173,6 +173,18 @@ const backendUrl = 'http://localhost:3000'
 
 const backendFetch = createFetch({
   baseUrl: backendUrl,
+  options: {
+    async beforeFetch({ options }) {
+      const token = localStorage.getItem('token')
+      if (token) {
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        }
+      }
+      return { options }
+    },
+  },
   fetchOptions: {
     mode: 'cors',
   },

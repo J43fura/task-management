@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-export const JWT_SECRET = "your-secret-key"; // In production, use environment variable
+export const JWT_SECRET = "your-secret-key";
 
 export function auth(req, res, next) {
   try {

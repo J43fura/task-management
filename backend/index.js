@@ -5,7 +5,31 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { JWT_SECRET } from "./middleware/auth.js";
+import { auth, JWT_SECRET } from "./middleware/auth.js";
+
+const app = express();
+const httpServer = createServer(app);
+app.use(cors());
+app.use(express.json());
+app.use("/tasks", auth);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+  },
+});
+
+await mongoose.connect("mongodb://localhost:27017/task_manager");
+
+const Task = new mongoose.Schema(
+  {
+    content: String,
+    creator: String,
+    assigned_to: { type: String, default: null },
+    is_finished: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+const TasksModel = mongoose.model("Tasks", Task);
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
@@ -21,30 +45,6 @@ UserSchema.pre("save", async function (next) {
 });
 
 const User = mongoose.model("User", UserSchema);
-
-const app = express();
-const httpServer = createServer(app);
-app.use(cors());
-app.use(express.json());
-
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-  },
-});
-await mongoose.connect("mongodb://localhost:27017/task_manager");
-
-const Task = new mongoose.Schema(
-  {
-    content: String,
-    creator: String,
-    assigned_to: { type: String, default: null },
-    is_finished: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
-
-const TasksModel = mongoose.model("Tasks", Task);
 
 // Login / Register
 app.post("/auth", async (req, res) => {
