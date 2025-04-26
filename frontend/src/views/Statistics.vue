@@ -28,9 +28,11 @@ const chartOptions = ref()
 const tasks = ref([])
 const taskCount = computed(() => tasks.value.length)
 const finishedTaskCount = computed(() => tasks.value?.filter((task) => task.is_finished).length)
-const ongoingTaskCount = computed(() => tasks.value?.filter((task) => task.assigned_to).length)
+const ongoingTaskCount = computed(
+  () => tasks.value?.filter((task) => task.assigned_to).length - finishedTaskCount.value,
+)
 
-const unfinishedTaskCount = computed(
+const newTaskCount = computed(
   () => taskCount.value - finishedTaskCount.value - ongoingTaskCount.value,
 )
 const finishedTaskPercentage = computed(() => (finishedTaskCount / taskCount) * 100)
@@ -42,11 +44,10 @@ onMounted(async () => {
 })
 const setChartData = () => {
   return {
-    labels: ['Finished tasks', 'Ongoing tasks', 'Unfinished tasks'],
+    labels: ['Finished tasks', 'Ongoing tasks', 'New tasks'],
     datasets: [
       {
-        label: 'Finished tasks',
-        data: [finishedTaskCount.value, ongoingTaskCount.value, unfinishedTaskCount.value],
+        data: [finishedTaskCount.value, ongoingTaskCount.value, newTaskCount.value],
       },
     ],
   }
