@@ -1,5 +1,6 @@
 import Login from '@/views/Login.vue'
 import Tasks from '@/views/Tasks.vue'
+import Stiastics from '@/views/Statistics.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -14,6 +15,11 @@ const router = createRouter({
       path: '/tasks',
       name: 'tasks',
       component: Tasks,
+    },
+    {
+      path: '/statistics',
+      name: 'statistics',
+      component: Stiastics,
     },
   ],
 })

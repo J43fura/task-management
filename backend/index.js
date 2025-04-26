@@ -1,22 +1,40 @@
+import cors from "cors";
 import express from "express";
+import mongoose from "mongoose";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 
 const app = express();
 const httpServer = createServer(app);
+app.use(cors());
+
 const io = new Server(httpServer, {
   cors: {
     origin: "*",
   },
 });
+await mongoose.connect("mongodb://localhost:27017/task_manager");
+
+const Task = new mongoose.Schema({
+  content: String,
+  creator: String,
+  assigned_to: { type: String, default: null },
+  is_finished: { type: Boolean, default: false },
+  date: { type: Date, default: Date.now },
+});
+
+const TasksModel = mongoose.model("Tasks", Task);
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-let connected_users = 0;
-let indexCounter = 0;
+app.get("/tasks", async (req, res) => {
+  const tasks = await TasksModel.find();
+  res.send(tasks);
+});
 
+let connected_users = 0;
 io.on("connection", (socket) => {
   console.log("a user connected", connected_users);
 
@@ -29,27 +47,33 @@ io.on("connection", (socket) => {
 
   // emitted from frontend
 
-  socket.on("new-task", (task) => {
-    task.status = "default";
-    task.index = ++indexCounter;
-    console.log("new-task", task);
+  socket.on("new-task", async (task) => {
+    const taskInstance = new TasksModel(task);
+    const taskRes = await taskInstance.save();
 
-    // emit back to frontend
+    console.log("new-task", taskRes);
     // socket.emit("new-task", task); // Back to the user
     // socket.broadcast.emit("new-task", task); // Back to all users but the user
-    io.emit("new-task", task); // Back to all users
+    io.emit("new-task", taskRes); // Back to all users
   });
 
-  socket.on("remove-task", (task) => {
-    console.log("remove-task", task);
-    io.emit("remove-task", task);
+  socket.on("remove-task", async (task) => {
+    console.log("to-remove-task", task);
+
+    const taskInstance = await TasksModel.findById(task._id);
+    const taskRes = await taskInstance.deleteOne();
+
+    console.log("remove-task", taskRes);
+    io.emit("remove-task", taskRes);
   });
 
-  socket.on("update-task", (task) => {
-    console.log("update-task", task);
-    const new_status = task.status === "default" ? "started" : "default";
-    task.status = new_status;
-    io.emit("update-task", task);
+  socket.on("update-task", async (task) => {
+    const taskRes = await TasksModel.findByIdAndUpdate(task._id, task, {
+      new: true,
+    });
+
+    console.log("update-task", taskRes);
+    io.emit("update-task", taskRes);
   });
 });
 
