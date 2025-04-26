@@ -3,9 +3,6 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev"
   },
-  "devDependencies": {
-    "supabase": "^2.20.12"
-  },
   "dependencies": {
     "@primeuix/themes": "^1.0.3",
     "primevue": "^4.3.3"
