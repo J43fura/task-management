@@ -15,13 +15,15 @@ const io = new Server(httpServer, {
 });
 await mongoose.connect("mongodb://localhost:27017/task_manager");
 
-const Task = new mongoose.Schema({
-  content: String,
-  creator: String,
-  assigned_to: { type: String, default: null },
-  is_finished: { type: Boolean, default: false },
-  date: { type: Date, default: Date.now },
-});
+const Task = new mongoose.Schema(
+  {
+    content: String,
+    creator: String,
+    assigned_to: { type: String, default: null },
+    is_finished: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
 
 const TasksModel = mongoose.model("Tasks", Task);
 

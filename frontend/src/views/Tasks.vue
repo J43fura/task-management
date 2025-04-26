@@ -50,12 +50,12 @@
                   {{ taskItem.content }}
                 </div>
               </div>
-              <div class="flex flex-row text-surface-500">
+              <div class="flex flex-row text-surface-500 text-sm">
                 <div>
                   @{{ taskItem.creator }}
                   opened at
                   <li class="pi pi-calendar"></li>
-                  {{ new Date(taskItem.date).toLocaleString() }}
+                  {{ new Date(taskItem.createdAt).toLocaleString() }}
                 </div>
 
                 <div v-if="taskItem.assigned_to">
@@ -113,7 +113,12 @@
               />
             </div>
             <div v-else>
-              <i class="pi pi-check text-primary"></i>
+              <i class="pi pi-check text-primary text-2xl mb-2"></i>
+              <div class="text-surface-500 text-sm">
+                Finished at
+                <li class="pi pi-calendar"></li>
+                {{ new Date(taskItem.updatedAt).toLocaleString() }}
+              </div>
             </div>
 
             <Divider />
