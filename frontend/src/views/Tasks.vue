@@ -170,7 +170,6 @@ function displayTask(event, taskItem) {
 }
 
 const backendUrl = 'http://localhost:3000'
-
 const backendFetch = createFetch({
   baseUrl: backendUrl,
   options: {
