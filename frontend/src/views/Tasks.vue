@@ -238,7 +238,12 @@ async function handleAuth() {
       life: 3000,
     })
   } catch (error) {
-    console.error('Error during auth:', error)
+    console.error('Could not sign in', error)
+    $toast.add({
+      severity: 'error',
+      detail: 'Could not sign in',
+      life: 3000,
+    })
   }
 }
 
