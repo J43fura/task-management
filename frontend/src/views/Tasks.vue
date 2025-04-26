@@ -14,19 +14,28 @@
       </div>
     </template>
     <template #content>
-      <InputText
-        type="text"
-        v-model="task.creator"
-        placeholder="Username"
-        :disabled="connected"
-        class="mb-2 mr-2"
-      />
-      <Button
-        :label="connectionButton"
-        :icon="!connected ? 'pi pi-sign-in' : 'pi pi-sign-out'"
-        @click="toggleConnection()"
-        :disabled="!task.creator"
-      />
+      <div>
+        <InputText
+          type="text"
+          v-model="username"
+          placeholder="Username"
+          :disabled="connected"
+          class="mb-2 mr-2"
+        />
+        <InputText
+          type="password"
+          v-model="password"
+          placeholder="Password"
+          :disabled="connected"
+          class="mb-2 mr-2"
+        />
+        <Button
+          :label="connectionButton"
+          :icon="!connected ? 'pi pi-sign-in' : 'pi pi-sign-out'"
+          @click="handleAuth()"
+          :disabled="!connected && (!username || !password)"
+        />
+      </div>
       <p>Connected: {{ connected }}</p>
       <p v-if="connected">{{ connected_users }} <i class="pi pi-user"></i></p>
       <p v-else><i class="pi pi-exclamation-triangle" /></p>
@@ -89,6 +98,7 @@
               />
 
               <Button
+                v-if="!(taskItem.assigned_to !== null && taskItem.assigned_to !== task.creator)"
                 :disabled="
                   (taskItem.assigned_to !== null && taskItem.assigned_to !== task.creator) ||
                   taskItem.is_finished
@@ -138,7 +148,7 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick, watch } from 'vue'
+import { computed, ref, nextTick, watch, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { io } from 'socket.io-client'
 import { reactive } from 'vue'
@@ -169,70 +179,131 @@ const backendFetch = createFetch({
 })
 
 const $toast = useToast()
-const socket = io(backendUrl)
-socket.disconnect()
+const socket = ref(null)
 
 const state = reactive({
   connected: false,
   tasks: [],
 })
 const tasks = computed(() => state.tasks)
-const connected = computed(() => state.connected)
+const connected = ref(false)
 
-async function toggleConnection() {
-  if (!connected.value) {
-    socket.connect()
-    const { data } = await backendFetch('tasks').get().json()
-    state.tasks.push(...data.value)
+const username = ref('')
+const password = ref('')
+
+onMounted(async () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    connected.value = false
   } else {
-    socket.disconnect()
+    connected.value = true
+    connectSocket()
+    await getTasks()
+  }
+})
+
+async function handleAuth() {
+  if (connected.value) {
+    handleLogout()
+    return
+  }
+  try {
+    const response = await backendFetch('auth').post({
+      username: username.value,
+      password: password.value,
+    })
+    const responseData = JSON.parse(response.data.value)
+
+    localStorage.setItem('token', responseData.token)
+    localStorage.setItem('username', responseData.user.username)
+    connected.value = true
+    connectSocket()
+    await getTasks()
+
+    $toast.add({
+      severity: 'success',
+      summary: 'Welcome',
+      detail: 'Successfully signed in',
+      life: 3000,
+    })
+  } catch (error) {
+    console.error('Error during auth:', error)
   }
 }
+
+function handleLogout() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('username')
+  connected.value = false
+  state.tasks.value = []
+  socket.value.disconnect()
+  socket.value = null
+}
+
+async function getTasks() {
+  const { data } = await backendFetch('tasks').get().json()
+  state.tasks = data.value
+}
+
 const connectionButton = computed(() => (!connected.value ? 'Connect' : 'Disconnect'))
 const connectionColor = computed(() => (!connected.value ? 'amber' : 'sky'))
 
-const task = ref({ content: '' })
+const task = ref({ content: '', creator: '' })
 const connected_users = ref(0)
 
 function addTask(taskItem) {
-  socket.emit('new-task', taskItem)
+  socket.value.emit('new-task', taskItem)
 }
 function removeTask(taskItem) {
-  socket.emit('remove-task', taskItem)
+  socket.value.emit('remove-task', taskItem)
 }
 function editTask(taskItem) {
-  socket.emit('update-task', taskItem)
+  socket.value.emit('update-task', taskItem)
 }
 function finishTask(taskItem) {
   taskItem.is_finished = true
-  socket.emit('update-task', taskItem)
+  socket.value.emit('update-task', taskItem)
 }
 function toggleTask(taskItem) {
   taskItem.assigned_to = taskItem.assigned_to ? null : task.value.creator
-  socket.emit('update-task', taskItem)
+  socket.value.emit('update-task', taskItem)
 }
 
-// Socket event handlers (emitted from backend)
-socket.on('connect', () => {
-  state.connected = true
-})
-socket.on('disconnect', () => {
-  state.connected = false
-})
-socket.on('connected-users', (new_connected_users) => {
-  connected_users.value = new_connected_users
-})
+function connectSocket() {
+  const token = localStorage.getItem('token')
+  username.value = localStorage.getItem('username')
 
-socket.on('new-task', (task) => {
-  state.tasks.push(task)
-  $toast.add({ severity: 'info', summary: 'Task', detail: 'Recieved new task', life: 3000 })
-})
-socket.on('remove-task', (task) => {
-  state.tasks = state.tasks.filter((filterTask) => filterTask._id !== task._id)
-  $toast.add({ severity: 'warn', summary: 'Task', detail: 'Removed task', life: 3000 })
-})
-socket.on('update-task', (task) => {
-  state.tasks = state.tasks.map((oldTask) => (oldTask._id !== task._id ? oldTask : task))
-  $toast.add({ severity: 'info', summary: 'Task', detail: 'Updated task', life: 3000 })
-})
+  task.value.creator = username.value
+
+  socket.value = io(backendUrl, {
+    auth: { token },
+  })
+  socket.value.connect()
+  // Socket event handlers (emitted from backend)
+  socket.value.on('connect', () => {
+    state.connected = true
+  })
+  socket.value.on('disconnect', () => {
+    state.connected = false
+  })
+  socket.value.on('connected-users', (new_connected_users) => {
+    connected_users.value = new_connected_users
+  })
+
+  socket.value.on('new-task', (task) => {
+    state.tasks.push(task)
+    $toast.add({ severity: 'info', summary: 'Task', detail: 'Recieved new task', life: 3000 })
+  })
+  socket.value.on('remove-task', (task) => {
+    console.log('Removed task', task._id, state.tasks)
+
+    state.tasks = state.tasks.filter((filterTask) => filterTask._id !== task._id)
+    console.log('Removed task', state.tasks)
+    $toast.add({ severity: 'warn', summary: 'Task', detail: 'Removed task', life: 3000 })
+  })
+  socket.value.on('update-task', (task) => {
+    state.tasks = state.tasks.map((oldTask) => (oldTask._id !== task._id ? oldTask : task))
+    $toast.add({ severity: 'info', summary: 'Task', detail: 'Updated task', life: 3000 })
+  })
+}
 </script>

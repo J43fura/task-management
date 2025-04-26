@@ -9,6 +9,11 @@ import Chart from 'primevue/chart'
 import { createFetch } from '@vueuse/core'
 import { ref, onMounted, computed } from 'vue'
 
+onMounted(() => {
+  if (!localStorage.getItem('token')) {
+    window.location.href = '/tasks'
+  }
+})
 const backendUrl = 'http://localhost:3000'
 
 const backendFetch = createFetch({
