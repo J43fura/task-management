@@ -130,5 +130,5 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(3000, () => {
-  console.log("Example app listening on port localhost:3000");
+  console.log("listening on port localhost:3000");
 });
